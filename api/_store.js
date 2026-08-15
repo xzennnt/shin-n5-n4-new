@@ -1,6 +1,8 @@
-// MOCKED — in-memory, data lost on container sleep
+import { Redis } from '@upstash/redis';
+
+// MOCKED — in-memory fallback, data lost on container sleep
 const store = new Map();
-export const redis = {
+const memoryRedis = {
   hgetall: async (hash) => {
     return store.get(hash) || {};
   },
@@ -21,6 +23,25 @@ const USERS_HASH = 'shin-nihongo:users';
 const ADMIN_USERNAME = 'xzennt';
 
 let redisClient = null;
+
+export const getRedis = () => {
+  if (redisClient) return redisClient;
+
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
+  if (url && token) {
+    redisClient = new Redis({
+      url: url,
+      token: token,
+    });
+  } else {
+    console.warn('WARNING: UPSTASH_REDIS or KV_REST env vars missing. Using in-memory store. Data will be lost on Vercel!');
+    redisClient = memoryRedis;
+  }
+
+  return redisClient;
+};
 
 export const normalizeUsername = (value = '') => value.trim().toLowerCase();
 
@@ -68,10 +89,6 @@ export const readJsonBody = async (request) => {
   }
 
   return rawBody ? JSON.parse(rawBody) : {};
-};
-
-export const getRedis = () => {
-  return redis;
 };
 
 export const getAllUsers = async () => {

@@ -11,7 +11,25 @@ const getCorrectAnswer = (qId) => {
 };
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('shin_nihongo_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('shin_nihongo_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('shin_nihongo_user');
+    }
+  }, [user]);
 
   if (!user) {
     return <LoginScreen onLogin={setUser} />;

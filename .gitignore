@@ -1,0 +1,9 @@
+node_modules/
+dist/
+work/
+outputs/
+.vercel/
+*.traineddata
+*.log
+.env
+.env.*

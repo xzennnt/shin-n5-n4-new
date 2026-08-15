@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <script>
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('fetch') && e.message.includes('getter')) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      }, true);
+      // Also try to provide a setter if possible
+      try {
+        const originalFetch = window.fetch;
+        if (originalFetch) {
+          Object.defineProperty(window, 'fetch', {
+            configurable: true,
+            enumerable: true,
+            get: () => originalFetch,
+            set: (val) => { /* ignore */ }
+          });
+        }
+      } catch(e) {}
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shin Nihongo LMS</title>
+    <meta
+      name="description"
+      content="LMS latihan soal JLPT N5 dengan login username, pembahasan terpisah, dan dashboard admin."
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

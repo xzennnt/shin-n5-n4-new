@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import questionsList from './questions.json';
+import answersData from './answers.json';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Trophy, LogOut, CheckCircle, XCircle, RotateCcw, Trash2 } from 'lucide-react';
 
 const getCorrectAnswer = (qId) => {
+  // Gunakan kunci jawaban dari OCR jika ada
+  if (answersData[qId] !== undefined) {
+    return answersData[qId];
+  }
+  
+  // Jika tidak ada (misalnya untuk soal review Day 7 yang gagal di-OCR), tebak sementara
   const match = qId.match(/q(\d+)/);
   if (!match) return 0;
   return (parseInt(match[1], 10) % 4);
@@ -241,9 +248,12 @@ function StudyArea({ user, setUser }) {
       const data = await res.json();
       if (res.ok) {
         setUser(data.user);
+      } else {
+        alert('Gagal submit jawaban: ' + (data.error || 'Terjadi kesalahan di server.'));
       }
     } catch (e) {
       console.error(e);
+      alert('Gagal menghubungi server.');
     }
   };
 
@@ -348,41 +358,69 @@ function StudyArea({ user, setUser }) {
               <img src={`/pdf-crops/${activeQuestion}-question.png`} alt="Question" className="w-full h-auto max-h-[400px] object-contain" />
             </div>
 
-            {user.progress.answers[activeQuestion] ? (
+            <div>
+              <h4 className="font-semibold mb-3">Opsi Jawaban ({activeDay === 'd7' ? '1-2' : '1-4'}):</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {(activeDay === 'd7' ? [0, 1] : [0, 1, 2, 3]).map(idx => {
+                  const answered = user.progress.answers[activeQuestion];
+                  const isSelected = answered && answered.selectedIndex === idx;
+                  const isActuallyCorrect = getCorrectAnswer(activeQuestion) === idx;
+                  
+                  let variant = "outline";
+                  let classes = "h-14 text-lg ";
+                  
+                  if (answered) {
+                    if (isActuallyCorrect) {
+                      classes += "bg-green-600 hover:bg-green-600 text-white border-green-600 opacity-100";
+                    } else if (isSelected) {
+                      classes += "bg-red-600 hover:bg-red-600 text-white border-red-600 opacity-100";
+                    } else {
+                      classes += "opacity-50";
+                    }
+                  }
+                  
+                  return (
+                    <Button 
+                      key={idx} 
+                      variant={variant}
+                      className={classes}
+                      onClick={() => !answered && handleAnswer(activeQuestion, idx)}
+                      disabled={!!answered}
+                    >
+                      Opsi {idx + 1}
+                    </Button>
+                  );
+                })}
+              </div>
+              {!user.progress.answers[activeQuestion] && (
+                <p className="text-sm text-muted-foreground mt-4 text-center">Pilih jawaban untuk melihat kunci dan pembahasannya.</p>
+              )}
+            </div>
+
+            {user.progress.answers[activeQuestion] && (() => {
+              const answeredIdx = user.progress.answers[activeQuestion].selectedIndex;
+              const correctIdx = getCorrectAnswer(activeQuestion);
+              const isCurrentlyCorrect = answeredIdx === correctIdx;
+              
+              return (
               <div className="space-y-6">
-                <div className={`p-4 rounded-lg flex items-start gap-3 ${user.progress.answers[activeQuestion].isCorrect ? 'bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-100' : 'bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-100'}`}>
-                  {user.progress.answers[activeQuestion].isCorrect ? <CheckCircle className="w-5 h-5 mt-0.5 text-green-600" /> : <XCircle className="w-5 h-5 mt-0.5 text-red-600" />}
+                <div className={`p-4 rounded-lg flex items-start gap-3 ${isCurrentlyCorrect ? 'bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-100' : 'bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-100'}`}>
+                  {isCurrentlyCorrect ? <CheckCircle className="w-5 h-5 mt-0.5 text-green-600" /> : <XCircle className="w-5 h-5 mt-0.5 text-red-600" />}
                   <div>
-                    <h3 className="font-semibold">{user.progress.answers[activeQuestion].isCorrect ? 'Correct!' : 'Incorrect'}</h3>
-                    <p className="text-sm opacity-90 mt-1">You selected option {user.progress.answers[activeQuestion].selectedIndex + 1}.</p>
+                    <h3 className="font-semibold">{isCurrentlyCorrect ? 'Benar!' : 'Salah'}</h3>
+                    <p className="text-sm opacity-90 mt-1">Anda memilih opsi {answeredIdx + 1}. {isCurrentlyCorrect ? '' : `Jawaban yang tepat adalah opsi ${correctIdx + 1}.`}</p>
                   </div>
                 </div>
                 
                 <div>
-                  <h4 className="font-semibold mb-2">Explanation / Answer:</h4>
+                  <h4 className="font-semibold mb-2">Pembahasan / Kunci Jawaban:</h4>
                   <div className="rounded-lg overflow-hidden border bg-white p-4">
                     <img src={`/pdf-crops/${activeQuestion}-answer.png`} alt="Answer" className="w-full h-auto max-h-[300px] object-contain" />
                   </div>
                 </div>
               </div>
-            ) : (
-              <div>
-                <h4 className="font-semibold mb-3">Select your answer:</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[0, 1, 2, 3].map(idx => (
-                    <Button 
-                      key={idx} 
-                      variant="outline" 
-                      className="h-14 text-lg"
-                      onClick={() => handleAnswer(activeQuestion, idx)}
-                    >
-                      Option {idx + 1}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground mt-4 text-center">Once submitted, answers cannot be changed.</p>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
       </div>

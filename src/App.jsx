@@ -412,12 +412,14 @@ function StudyArea({ user, setUser }) {
                   </div>
                 </div>
                 
-                <div>
-                  <h4 className="font-semibold mb-2">Pembahasan / Kunci Jawaban:</h4>
-                  <div className="rounded-lg overflow-hidden border bg-white p-4">
-                    <img src={`/pdf-crops/${activeQuestion}-answer.png`} alt="Answer" className="w-full h-auto max-h-[300px] object-contain" />
+                {activeDay !== 'd7' && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Pembahasan / Kunci Jawaban:</h4>
+                    <div className="rounded-lg overflow-hidden border bg-white p-4">
+                      <img src={`/pdf-crops/${activeQuestion}-answer.png`} alt="Answer" className="w-full h-auto max-h-[300px] object-contain" />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               );
             })()}
